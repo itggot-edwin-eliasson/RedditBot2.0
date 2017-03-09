@@ -4,6 +4,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace RedditBot2._0
 {
@@ -12,6 +14,7 @@ namespace RedditBot2._0
         private string _name;
         private string _description;
         private string _username, _password, _clientId, _secret;
+        private Dictionary<string,string> _formData;
 
 
         public RedditBot(string name, string description)
@@ -20,26 +23,35 @@ namespace RedditBot2._0
             _description = description;
         }
 
-        public void Authenticator(string username, string password, string clientId, string secret)
+        public void Authenticate(string username, string password, string clientId, string secret)
         {
+            _username = username;
+            _password = password;
+            _clientId = clientId;
+            _secret = secret;
+            _formData = new Dictionary<string, string>
+            {
+                { "grant_type", "password" },
+                    { "username", _username },
+                    { "password", _password }
+            };
+
             var clientVersion = "1.0";
 
             using (var client = new HttpClient())
             {
                 //Configure the client
-                var authenticationArray = Encoding.ASCII.GetBytes($"{clientId}:{secret}");
-                var encodedAuthenticationString = Convert.ToBase64String(authenticationArray);
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", encodedAuthenticationString);
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", configClient());
 
                 //User-Agent
-                client.DefaultRequestHeaders.Add("User-Agent", $"coolbot / v{clientVersion} by {username}");
+                client.DefaultRequestHeaders.Add("User-Agent", $"{_name} / v{clientVersion} by {_username}");
 
                 //Loggin form
                 var formData = new Dictionary<string, string>
                 {
                     { "grant_type", "password" },
-                    { "username", username },
-                    { "password", password }
+                    { "username", _username },
+                    { "password", _password }
                 };
                 var encodedFormData = new FormUrlEncodedContent(formData);
 
@@ -64,5 +76,17 @@ namespace RedditBot2._0
                 responseData = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                 Console.WriteLine(responseData);
             }
+
+        
+        }
+
+        private string configClient()
+        {
+            var authenticationArray = Encoding.ASCII.GetBytes($"{_clientId}:{_secret}");
+            return Convert.ToBase64String(authenticationArray);
+
+
+        }
+
     }
 }
